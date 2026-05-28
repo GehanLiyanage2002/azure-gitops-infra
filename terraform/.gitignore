@@ -4,6 +4,7 @@
 *.tfstate.*
 crash.log
 terraform.tfvars
+terraform-provider-azurerm_v3.117.1_x5.exe
 terraform.tfvars.json
 
 # Terraform lock file (optional keep/remove)

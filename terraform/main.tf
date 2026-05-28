@@ -11,12 +11,17 @@ provider "azurerm" {
   features {}
 }
 
+# ----------------------------
+# 1. Resource Group
+# ----------------------------
 resource "azurerm_resource_group" "rg" {
   name     = "rg-gitops-project"
   location = "East US"
 }
 
-# 1. Custom Virtual Network
+# ----------------------------
+# 2. Virtual Network
+# ----------------------------
 resource "azurerm_virtual_network" "vnet" {
   name                = "gitops-vnet"
   location            = azurerm_resource_group.rg.location
@@ -31,16 +36,20 @@ resource "azurerm_subnet" "aks_subnet" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-# 2. Azure Container Registry (ACR)
+# ----------------------------
+# 3. Azure Container Registry
+# ----------------------------
 resource "azurerm_container_registry" "acr" {
-  name                = "acrigitopsprojectunique" # Must be globally unique alphanumeric
+  name                = "acrigitopsprojectunique123" # must be globally unique
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   sku                 = "Standard"
   admin_enabled       = true
 }
 
-# 3. Azure Kubernetes Service (AKS) Cluster
+# ----------------------------
+# 4. AKS Cluster
+# ----------------------------
 resource "azurerm_kubernetes_cluster" "aks" {
   name                = "aks-gitops-cluster"
   location            = azurerm_resource_group.rg.location
@@ -48,21 +57,30 @@ resource "azurerm_kubernetes_cluster" "aks" {
   dns_prefix          = "gitopscluster"
 
   default_node_pool {
-    name       = "default"
-    node_count = 1                  # Kept at 1 node to minimize cloud costs
-    vm_size    = "Standard_B2s"     # Small, cost-efficient, burstable VM suitable for learning
+    name           = "default"
+    node_count     = 1
+    vm_size        = "Standard_B2s_v2"
     vnet_subnet_id = azurerm_subnet.aks_subnet.id
   }
 
   identity {
     type = "SystemAssigned"
   }
+
+  # IMPORTANT FIX: prevent CIDR overlap
+  network_profile {
+    network_plugin     = "azure"
+    service_cidr       = "10.240.0.0/16"
+    dns_service_ip     = "10.240.0.10"
+    docker_bridge_cidr = "172.17.0.1/16"
+  }
 }
 
-# 4. Attach ACR to AKS Cluster (Role Assignment)
+# ----------------------------
+# 5. Allow AKS to Pull from ACR
+# ----------------------------
 resource "azurerm_role_assignment" "aks_acr_pull" {
-  principal_id                     = azurerm_kubernetes_cluster.aks.kubelet_identity[0].object_id
-  role_definition_name             = "AcrPull"
-  scope                            = azurerm_container_registry.acr.id
-  skip_service_principal_aad_check = true
+  principal_id         = azurerm_kubernetes_cluster.aks.identity[0].principal_id
+  role_definition_name = "AcrPull"
+  scope                = azurerm_container_registry.acr.id
 }
