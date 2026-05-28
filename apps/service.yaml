@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitops-app-deployment
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gitops-app
+  template:
+    metadata:
+      labels:
+        app: gitops-app
+    spec:
+      containers:
+      - name: web-app
+        image: acrigitopsprojectunique.azurecr.io/gitops-app:placeholder # Will be dynamically updated by CI
+        ports:
+        - containerPort: 3000
