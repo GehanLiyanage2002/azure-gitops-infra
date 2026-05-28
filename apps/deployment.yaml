@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
       - name: web-app
-        image: acrigitopsprojectunique.azurecr.io/gitops-app:placeholder # Will be dynamically updated by CI
+        image: acrigitopsprojectunique123.azurecr.io/gitops-app:b0015af52fdf1a7123735df4e69a7aedb8a34144
         ports:
         - containerPort: 3000
